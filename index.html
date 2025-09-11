@@ -263,8 +263,33 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // --- START: CONFIGURATION FOR NETLIFY ---
+        // IMPORTANT: When you deploy to Netlify, you MUST replace these placeholder
+        // values with your actual configuration from your Firebase and Google AI projects.
+        // Your local development environment might provide these automatically, but
+        // Netlify cannot read them from a static HTML file.
+
+        // 1. PASTE YOUR FIREBASE CONFIGURATION HERE
+        // Get this from your Firebase project settings (Project settings > General > Your apps > SDK setup and configuration)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // 2. PASTE YOUR GOOGLE AI (GEMINI) API KEY HERE
+        // Get this from Google AI Studio.
+        // WARNING: Exposing this key in a client-side application is a security risk.
+        // For a production app, it's recommended to call the API through a secure
+        // backend or serverless function to protect your key.
+        const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY";
+
+        // --- END: CONFIGURATION FOR NETLIFY ---
+
+        const appId = firebaseConfig.appId || 'default-app-id';
 
         let app, auth, db, userId;
         let currentDate = new Date();
@@ -274,9 +299,8 @@
         let currentModalType = '';
         let userSettings = {}; // Global variable to store user settings
         
-        const API_KEY = "";
-        const LLM_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=" + API_KEY;
-        const TTS_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=" + API_KEY;
+        const LLM_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+        const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${GEMINI_API_KEY}`;
         
         const messageModal = document.getElementById('message-modal');
         const modalTitle = document.getElementById('modal-title');
@@ -616,12 +640,15 @@
 
             // Render existing dynamic categories
             const dynamicContainer = document.getElementById('dynamic-categories-container');
-            categoryOptions.forEach(category => {
-                const sanitizedKey = category.replace(/\s+/g, '').toLowerCase();
-                if (currentJournalEntry[sanitizedKey]) {
-                    dynamicContainer.innerHTML += createCategoryBlockHTML(category, currentJournalEntry[sanitizedKey]);
-                }
-            });
+            if(dynamicContainer) {
+                dynamicContainer.innerHTML = ''; // Clear previous
+                categoryOptions.forEach(category => {
+                    const sanitizedKey = category.replace(/\s+/g, '').toLowerCase();
+                    if (currentJournalEntry[sanitizedKey]) {
+                        dynamicContainer.innerHTML += createCategoryBlockHTML(category, currentJournalEntry[sanitizedKey]);
+                    }
+                });
+            }
 
             calendarView.classList.add('hidden');
             journalView.classList.remove('hidden');
@@ -663,7 +690,7 @@
                         dynamicContainer.innerHTML += createCategoryBlockHTML(categoryToAdd);
                         bindRemoveButtons();
                     } else {
-                        showModal('Category Exists', `${categoryToAdd} is already on the page.`);
+                        Swal.fire('Category Exists', `${categoryToAdd} is already on the page.`, 'info');
                     }
                 });
             }
@@ -684,7 +711,11 @@
         
         function bindRemoveButtons() {
             document.querySelectorAll('.remove-category-btn').forEach(btn => {
-                btn.onclick = (e) => {
+                // Remove existing listeners to prevent duplicates
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', (e) => {
                     const block = e.target.closest('.category-block');
                     const category = block.dataset.category;
                     const sanitizedKey = category.replace(/\s+/g, '').toLowerCase();
@@ -692,7 +723,7 @@
                         delete currentJournalEntry[sanitizedKey];
                         block.remove();
                     }
-                };
+                });
             });
         }
         
@@ -740,12 +771,15 @@
                 
                 // Re-render the dynamic content
                 const dynamicContainer = document.getElementById('dynamic-categories-container');
-                categoryOptions.forEach(category => {
-                    const sanitizedKey = category.replace(/\s+/g, '').toLowerCase();
-                    if (currentJournalEntry[sanitizedKey]) {
-                        dynamicContainer.innerHTML += createCategoryBlockHTML(category, currentJournalEntry[sanitizedKey]);
-                    }
-                });
+                 if(dynamicContainer) {
+                    dynamicContainer.innerHTML = ''; // Clear previous
+                    categoryOptions.forEach(category => {
+                        const sanitizedKey = category.replace(/\s+/g, '').toLowerCase();
+                        if (currentJournalEntry[sanitizedKey]) {
+                            dynamicContainer.innerHTML += createCategoryBlockHTML(category, currentJournalEntry[sanitizedKey]);
+                        }
+                    });
+                }
 
                 pageFlipper.style.transition = 'none';
                 pageFlipper.classList.remove('flipped');
@@ -904,7 +938,7 @@
                         await new Promise(resolve => setTimeout(resolve, delay));
                     } else {
                         console.error("LLM API failed after multiple retries:", error);
-                        showModal('LLM Error', 'Failed to communicate with the AI. Please try again.');
+                        Swal.fire('LLM Error', 'Failed to communicate with the AI. Please try again.', 'error');
                         throw error;
                     }
                 }
@@ -1258,6 +1292,37 @@
         }
         
         async function init() {
+            // Configuration check
+            if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY") {
+                Swal.fire({
+                    title: 'Configuration Needed',
+                    text: 'Your Firebase configuration is missing. Please edit this file to add your Firebase project details for the app to work.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                console.error("Firebase configuration is missing or is a placeholder.");
+                return; // Stop initialization
+            }
+
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY") {
+                 Swal.fire({
+                    title: 'AI Features Disabled',
+                    text: 'Your Gemini API Key is missing. The AI-powered features will not work until you add it to the file.',
+                    icon: 'warning',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000
+                });
+                document.querySelectorAll('#fun-fact-btn, #grammar-coach-btn, #read-aloud-btn').forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                    btn.title = "Gemini API Key not configured.";
+                });
+                console.warn("Gemini API key is missing. AI features will be disabled.");
+            }
+
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -1280,16 +1345,14 @@
                         });
 
                     } else {
-                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                        if (token) {
-                            await signInWithCustomToken(auth, token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        // In a deployed environment, __initial_auth_token will be undefined.
+                        // So, we will sign in anonymously.
+                        await signInAnonymously(auth);
                     }
                 });
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
+                Swal.fire("Initialization Error", "Could not connect to Firebase. Please check your configuration and console for details.", "error");
             }
             
             renderCalendar();
