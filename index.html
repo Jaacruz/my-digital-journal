@@ -1269,18 +1269,11 @@
         }
         
         async function init() {
-            if (Object.keys(firebaseConfig).length === 0) {
-                 Swal.fire({
-                    title: 'Configuration Error',
-                    text: 'Firebase is not configured. The application cannot start.',
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-                console.error("Firebase configuration object is empty.");
-                return;
-            }
-
             try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("Firebase configuration object is empty.");
+                }
+
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
@@ -1312,7 +1305,7 @@
                 });
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                Swal.fire("Initialization Error", "Could not connect to Firebase. Please check your configuration and console for details.", "error");
+                Swal.fire("Initialization Error", "Could not connect to Firebase. Please check your configuration and console for details. Error: " + error.message, "error");
             }
             
             renderCalendar();
