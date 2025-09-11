@@ -264,7 +264,15 @@
         import { getFirestore, doc, setDoc, onSnapshot, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // This code now dynamically uses the configuration provided by the environment it's running in.
-        const firebaseConfig = JSON.parse(typeof FIREBASE_CONFIG !== 'undefined' ? FIREBASE_CONFIG : '{}');
+            const firebaseConfig = {
+              apiKey: "AIzaSyDorJ8R3Cga5KOJMTz4d6RobGl8kYwolnM",
+              authDomain: "emergent-digital-journal-app.firebaseapp.com",
+              projectId: "emergent-digital-journal-app",
+              storageBucket: "emergent-digital-journal-app.firebasestorage.app",
+              messagingSenderId: "606563065547",
+              appId: "1:606563065547:web:ff1f71757bf32417c8454e",
+              measurementId: "G-NBEM8EK3K4"
+            };        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const GEMINI_API_KEY = ""; // The environment will handle the API key.
 
@@ -1357,5 +1365,6 @@
     </script>
 </body>
 </html>
+
 
 
